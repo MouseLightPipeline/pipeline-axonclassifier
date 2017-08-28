@@ -1,4 +1,4 @@
-function [outputArgs] = deployIlastikonbrain(brain,tag)
+function deployIlastikonbrain(brain,tag)
 %DEPLOYONBRAIN Summary of this function goes here
 % 
 % [OUTPUTARGS] = DEPLOYONBRAIN(INPUTARGS) Explain usage here
@@ -18,25 +18,27 @@ function [outputArgs] = deployIlastikonbrain(brain,tag)
 addpath(genpath('./common'))
 %%
 if nargin==0
-    brain = '2015-06-19';
+    brain = '2014-06-24';
     tag = ''
 end
 
-if 1
+if 0
     % old
     inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/from_tier2/data/%s/Tiling',brain);
-    experimentfolder = sprintf('/nrs/mouselight/cluster/%s%s/',brain,tag);
+    experimentfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
+%     experimentfolder = sprintf('/nrs/mouselight/cluster/%s%s/',brain,tag);
 else
     % new    
-    inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s',brain);
-    experimentfolder = sprintf('/nrs/mouselight/analytics/%s/',brain,tag);
+    inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',brain);
+    experimentfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
 end
 logfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/LOG/%s%s/',brain,tag);
 out = fullfile(experimentfolder,'/classifier_output/');
-myshfile = fullfile(experimentfolder,sprintf('cluster_ilastik_%s-DEMO-miss.sh',brain));
+myshfile = fullfile(experimentfolder,sprintf('cluster_ilastik_%s.sh',brain));
 
 mkdir(logfolder)
 unix(sprintf('umask g+rxw %s',logfolder))
+unix(sprintf('chmod g+rxw %s',logfolder))
 mkdir(out)
 unix(sprintf('umask g+rxw %s',out))
 %%
@@ -79,12 +81,29 @@ else
     outext = 'h5'
     outextformat = '"hdf5"'
 end
-
-if 1
-    missingfiles=1:length(C);
+%%
+if 0
+    missingfiles=ones(1,length(C));
 else
-    missingfiles = checkmissing(experimentfolder,logfolder)
+    missingfiles = checkmissing(experimentfolder,logfolder);
 end
+sum(missingfiles)
+%%
+%^ HECK
+missingfiles=ones(1,length(C));
+missingfiles(2:2:end) = 0;
+% for every tif check if h5 exists
+for ii=1:length(C)
+    if ~missingfiles(ii)
+        continue
+    end
+%     [aa,bb,cc] = fileparts(C{ii}(length(inputfolder)+1:end))
+    
+    if exist(fullfile(out,strrep(strrep(mynames{ii},'ngc','prob'),'tif','h5')),'file')
+        missingfiles(ii) = 0;
+    end
+end
+
 %%
 s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 %find number of random characters to choose from
@@ -92,7 +111,7 @@ numRands = length(s);
 %specify length of random string to generate
 sLength = 10;
 fid = fopen(myshfile,'w');
-for ii=1:length(C)
+for ii=1:1:length(C)
     %%
     if ~missingfiles(ii)
         continue
@@ -111,13 +130,15 @@ for ii=1:length(C)
     subname = strsplit(name,{'-','.'});
     if ~exist(fullfile(out,subpath), 'dir')
         mkdir(fullfile(out,subpath));
+        unix(sprintf('chmod g+rwx %s',fullfile(out,subpath)));
     end
     outputformat=fullfile(out,subpath,sprintf('%s-%s.%s.%s',subname{1},nametag,subname{3},outext));
     argsout = sprintf('''%s --headless  --cutout_subregion="[(None,None,None,0),(None,None,None,1)]" --logfile=%s --project=%s --output_format=%s --output_filename_format=%s %s''',...
         ilastikloc,logfile,ilpfile,outextformat,outputformat,infiles);
     % make sure name doesnot have any '.'
     name(name=='.')=[];
-    mysub = sprintf('LAZYFLOW_THREADS=%d LAZYFLOW_TOTAL_RAM_MB=%d qsub -pe batch %d -l d_rt=1400 -N t-%d-%s -j y -o /dev/null -b y -cwd -V %s\n',numcores,memsize,numcores,ii,jobname,argsout);
+%     mysub = sprintf('LAZYFLOW_THREADS=%d LAZYFLOW_TOTAL_RAM_MB=%d qsub -pe batch %d -l d_rt=1400 -N t-%d-%s -j y -o /dev/null -b y -cwd -V %s\n',numcores,memsize,numcores,ii,jobname,argsout);
+    mysub = sprintf('LAZYFLOW_THREADS=%d LAZYFLOW_TOTAL_RAM_MB=%d bsub -n%d -We 25 -J t-%d-%s -o /dev/null %s\n',numcores,memsize,numcores,ii,jobname,argsout);
     fwrite(fid,mysub);
 end
 fclose(fid);
@@ -217,3 +238,53 @@ if level==0
 end
 
 end
+
+function missmatch()
+inputfolder = '/nrs/mouselight/cluster/classifierOutputs/2015-06-19_backup/'
+filename = fullfile(inputfolder,'listfiles');
+fid = fopen(filename);
+C = textscan(fid,'%s','Delimiter','\n');C=C{1};
+fclose(fid);
+myfun = @(x) strsplit(x,'/');
+clear mynames
+for ii=1:length(C)
+    %     K = myfun(C{ii});
+    % get the portion after inputfolder
+    mynames{ii} = C{ii}(length('/groups/mousebrainmicro/mousebrainmicro/from_tier2/data/2015-06-19/Tiling')+1:end);
+end
+%%
+inputfolder = '/nrs/mouselight/cluster/classifierOutputs/2015-06-19_backup/classifier_output'
+filename = fullfile(inputfolder,'filelist.txt');
+fid = fopen(filename);
+C2 = textscan(fid,'%s','Delimiter','\n');C2=C2{1};
+fclose(fid);
+myfun = @(x) strsplit(x,'/');
+clear mynames2
+for ii=1:length(C2)
+    %     K = myfun(C{ii});
+    % get the portion after inputfolder
+    mynames2{ii} = C2{ii}(length(inputfolder)+1:end);
+end
+%%
+found=zeros(1,size(mynames,2));
+iis1 = [2:27,32];
+iis2 = [2:27,33];
+for ii=1:size(mynames,2)
+    %%
+    ii
+    % check if this exists
+    mystr = mynames{ii}(iis1);
+    for jj=1:size(mynames2,2)
+        mystr2=mynames2{jj}(iis2);
+        if all(mystr==mystr2)
+            found(ii)=1;
+            mynames2(jj)=[];
+            break
+        end
+    end
+end
+end
+
+
+
+
