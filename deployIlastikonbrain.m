@@ -18,7 +18,7 @@ function deployIlastikonbrain(brain,tag)
 addpath(genpath('./common'))
 %%
 if nargin==0
-    brain = '2014-06-24';
+    brain = '2017-08-10';
     tag = ''
 end
 
@@ -43,7 +43,7 @@ mkdir(out)
 unix(sprintf('umask g+rxw %s',out))
 %%
 clear args
-pathfile = fullfile(experimentfolder,'listfiles');
+pathfile = fullfile(experimentfolder,'listtiffiles');
 args.ext = 'tif';
 args.level = 3;
 if exist(pathfile, 'file') == 2
@@ -59,7 +59,7 @@ end
 % first get file list
 filename = pathfile;
 fid = fopen(filename);
-C = textscan(fid,'%s','Delimiter','\n');C=C{1};
+targetlist = textscan(fid,'%s','Delimiter','\n');targetlist=targetlist{1};
 fclose(fid);
 myfun = @(x) strsplit(x,'/');
 clear mynames
@@ -111,7 +111,7 @@ numRands = length(s);
 %specify length of random string to generate
 sLength = 10;
 fid = fopen(myshfile,'w');
-for ii=1:1:length(C)
+for ii=1:1:length(targetlist)
     %%
     if ~missingfiles(ii)
         continue
@@ -123,9 +123,9 @@ for ii=1:1:length(C)
     randString = s( ceil(rand(1,sLength)*numRands) );
     jobname = sprintf('ilp_%05d-%s',ii,randString);
     logfile=fullfile(logfolder,sprintf('ilp_%05d-%s.txt',ii,randString));
-    infiles=C{ii};
+    infiles=targetlist{ii};
     
-    [subpath,name,ext]=fileparts(C{ii}(length(inputfolder)+1:end));
+    [subpath,name,ext]=fileparts(targetlist{ii}(length(inputfolder)+1:end));
     % TODO: rename using prob 
     subname = strsplit(name,{'-','.'});
     if ~exist(fullfile(out,subpath), 'dir')
