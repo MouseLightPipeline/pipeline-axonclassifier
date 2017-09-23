@@ -18,7 +18,7 @@ function deployIlastikonbrain(brain,tag)
 addpath(genpath('./common'))
 %%
 if nargin==0
-    brain = '2017-08-10';
+    brain = '2017-08-28';
     tag = ''
 end
 
@@ -63,10 +63,10 @@ targetlist = textscan(fid,'%s','Delimiter','\n');targetlist=targetlist{1};
 fclose(fid);
 myfun = @(x) strsplit(x,'/');
 clear mynames
-for ii=1:length(C)
-    %     K = myfun(C{ii});
+for ii=1:length(targetlist)
+    %     K = myfun(targetlist{ii});
     % get the portion after inputfolder
-    mynames{ii} = C{ii}(length(inputfolder)+1:end);
+    mynames{ii} = targetlist{ii}(length(inputfolder)+1:end);
 end
 %%
 nametag = 'prob'
@@ -83,27 +83,29 @@ else
 end
 %%
 if 0
-    missingfiles=ones(1,length(C));
+    missingfiles=ones(1,length(targetlist));
 else
-    missingfiles = checkmissing(experimentfolder,logfolder);
+    pathfile = fullfile(experimentfolder,'listtiffiles');
+    missingfiles = checkmissing(pathfile,logfolder);
 end
 sum(missingfiles)
 %%
 %^ HECK
-missingfiles=ones(1,length(C));
-missingfiles(2:2:end) = 0;
+if 0
+missingfiles=ones(1,length(targetlist));
+% missingfiles(2:2:end) = 0;
 % for every tif check if h5 exists
-for ii=1:length(C)
+for ii=1:length(targetlist)
     if ~missingfiles(ii)
         continue
     end
-%     [aa,bb,cc] = fileparts(C{ii}(length(inputfolder)+1:end))
+%     [aa,bb,cc] = fileparts(targetlist{ii}(length(inputfolder)+1:end))
     
     if exist(fullfile(out,strrep(strrep(mynames{ii},'ngc','prob'),'tif','h5')),'file')
         missingfiles(ii) = 0;
     end
 end
-
+end
 %%
 s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 %find number of random characters to choose from
@@ -146,17 +148,16 @@ unix(sprintf('chmod +x %s',myshfile));
 
 
 end
-function missingfiles = checkmissing(experimentfolder,logfolder)
+function missingfiles = checkmissing(pathfile,logfolder)
 %%
-pathfile = fullfile(experimentfolder,'listfiles');
 filename = pathfile;
 fid = fopen(filename);
-C = textscan(fid,'%s','Delimiter','\n');C=C{1};
+targetlist = textscan(fid,'%s','Delimiter','\n');targetlist=targetlist{1};
 fclose(fid);
 myfold = logfolder;
 myfiles = dir(sprintf('%s/*.txt',myfold))
 %%
-valind = zeros(1,length(C));
+valind = zeros(1,length(targetlist));
 valfiles = zeros(length(myfiles),2);
 parfor_progress(length(myfiles));
 parfor ii=1:length(myfiles)
@@ -184,8 +185,8 @@ parfor ii=1:length(myfiles)
 end
 parfor_progress(0);
 %%
-missingfiles = zeros(1,length(C));
-missingfiles(setdiff(1:length(C),valfiles(valfiles(:,2)>0,1))) = 1;
+missingfiles = zeros(1,length(targetlist));
+missingfiles(setdiff(1:length(targetlist),valfiles(valfiles(:,2)>0,1))) = 1;
 %%
 
 
@@ -243,14 +244,14 @@ function missmatch()
 inputfolder = '/nrs/mouselight/cluster/classifierOutputs/2015-06-19_backup/'
 filename = fullfile(inputfolder,'listfiles');
 fid = fopen(filename);
-C = textscan(fid,'%s','Delimiter','\n');C=C{1};
+targetlist = textscan(fid,'%s','Delimiter','\n');targetlist=targetlist{1};
 fclose(fid);
 myfun = @(x) strsplit(x,'/');
 clear mynames
-for ii=1:length(C)
-    %     K = myfun(C{ii});
+for ii=1:length(targetlist)
+    %     K = myfun(targetlist{ii});
     % get the portion after inputfolder
-    mynames{ii} = C{ii}(length('/groups/mousebrainmicro/mousebrainmicro/from_tier2/data/2015-06-19/Tiling')+1:end);
+    mynames{ii} = targetlist{ii}(length('/groups/mousebrainmicro/mousebrainmicro/from_tier2/data/2015-06-19/Tiling')+1:end);
 end
 %%
 inputfolder = '/nrs/mouselight/cluster/classifierOutputs/2015-06-19_backup/classifier_output'
@@ -261,7 +262,7 @@ fclose(fid);
 myfun = @(x) strsplit(x,'/');
 clear mynames2
 for ii=1:length(C2)
-    %     K = myfun(C{ii});
+    %     K = myfun(targetlist{ii});
     % get the portion after inputfolder
     mynames2{ii} = C2{ii}(length(inputfolder)+1:end);
 end

@@ -32,7 +32,7 @@ sLength = 10;
 numtif = length(inputlist);
 myshfile = 'missing.sh'
 fid = fopen(myshfile,'w');
-for ii=26972:numtif
+for ii=1:numtif
     inputname = inputlist{ii};
     [subpath,name,ext]=fileparts(inputname(length(tiffolder)+1:end));
     % check h5
@@ -40,37 +40,38 @@ for ii=26972:numtif
     n2 = strrep(n1,'tif','h5');
     n3 = strrep(n1,'desc','txt');
     h5name = fullfile(h5folder,subpath,[n2,'.h5']);
-    if exist(h5name,'file')
+    q = 1;
+%     if exist(h5name,'file')
         % check completion
         spC = strsplit(subpath,'/');
         logfile = ['ax-',spC{2},'-',spC{3},'-',spC{4},n1(end-1:end),'.txt'];
         logpath = fullfile(logfolder,logfile);
         [q,w] = system(['grep ','"Completed Batch Processing"',' ',logpath]);
-        if q
-            q
-%             % break
-%         elseif 0
-            %%
-            % append to bsub
-            randString = s( ceil(rand(1,sLength)*numRands) );
-            jobname = sprintf('ilp_%05d-%s',ii,randString);
-            
-            infiles=inputname;
-            % TODO: rename using prob
-            subname = strsplit(name,{'-','.'});
-            if ~exist(fullfile(h5folder,subpath), 'dir')
-                mkdir(fullfile(h5folder,subpath));
-                unix(sprintf('chmod g+rwx %s',fullfile(h5folder,subpath)));
-            end
-            outputformat=fullfile(h5folder,subpath,sprintf('%s-%s.%s.%s',subname{1},nametag,subname{3},outext));
-            argsout = sprintf('''%s --headless  --cutout_subregion="[(None,None,None,0),(None,None,None,1)]" --logfile=%s --project=%s --output_format=%s --output_filename_format=%s %s''',...
-                ilastikloc,logpath,ilpfile,outextformat,outputformat,infiles);
-            % make sure name doesnot have any '.'
-            name(name=='.')=[];
-            %     mysub = sprintf('LAZYFLOW_THREADS=%d LAZYFLOW_TOTAL_RAM_MB=%d qsub -pe batch %d -l d_rt=1400 -N t-%d-%s -j y -o /dev/null -b y -cwd -V %s\n',numcores,memsize,numcores,ii,jobname,argsout);
-            mysub = sprintf('LAZYFLOW_THREADS=%d LAZYFLOW_TOTAL_RAM_MB=%d bsub -n%d -We 25 -J t-%d-%s -o /dev/null %s\n',numcores,memsize,numcores,ii,jobname,argsout);
-            fwrite(fid,mysub);
+%     end
+    if q
+        q
+        %             % break
+        %         elseif 0
+        %%
+        % append to bsub
+        randString = s( ceil(rand(1,sLength)*numRands) );
+        jobname = sprintf('ilp_%05d-%s',ii,randString);
+        
+        infiles=inputname;
+        % TODO: rename using prob
+        subname = strsplit(name,{'-','.'});
+        if ~exist(fullfile(h5folder,subpath), 'dir')
+            mkdir(fullfile(h5folder,subpath));
+            unix(sprintf('chmod g+rwx %s',fullfile(h5folder,subpath)));
         end
+        outputformat=fullfile(h5folder,subpath,sprintf('%s-%s.%s.%s',subname{1},nametag,subname{3},outext));
+        argsout = sprintf('''%s --headless  --cutout_subregion="[(None,None,None,0),(None,None,None,1)]" --logfile=%s --project=%s --output_format=%s --output_filename_format=%s %s''',...
+            ilastikloc,logpath,ilpfile,outextformat,outputformat,infiles);
+        % make sure name doesnot have any '.'
+        name(name=='.')=[];
+        %     mysub = sprintf('LAZYFLOW_THREADS=%d LAZYFLOW_TOTAL_RAM_MB=%d qsub -pe batch %d -l d_rt=1400 -N t-%d-%s -j y -o /dev/null -b y -cwd -V %s\n',numcores,memsize,numcores,ii,jobname,argsout);
+        mysub = sprintf('LAZYFLOW_THREADS=%d LAZYFLOW_TOTAL_RAM_MB=%d bsub -n%d -We 25 -J t-%d-%s -o /dev/null %s\n',numcores,memsize,numcores,ii,jobname,argsout);
+        fwrite(fid,mysub);
     end
 end
 fclose(fid);
