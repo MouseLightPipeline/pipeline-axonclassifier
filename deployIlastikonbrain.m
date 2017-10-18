@@ -1,4 +1,4 @@
-function deployIlastikonbrain(brain,tag)
+function deployIlastikonbrain(brain,tag,logfolder)
 %DEPLOYONBRAIN Summary of this function goes here
 % 
 % [OUTPUTARGS] = DEPLOYONBRAIN(INPUTARGS) Explain usage here
@@ -17,56 +17,21 @@ function deployIlastikonbrain(brain,tag)
 % Copyright: HHMI 2016
 addpath(genpath('./common'))
 %%
+% logfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/LOG/%s%s/',brain,tag);
 if nargin==0
     brain = '2017-09-25';
     tag = '';
+    logfolder = [];
 elseif nargin==1
     tag = '';
-end
-
-inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',brain);
-experimentfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
-% logfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/LOG/%s%s/',brain,tag);
-
-out = fullfile(experimentfolder,'/classifier_output/');
-myshfile = fullfile(experimentfolder,sprintf('cluster_ilastik_%s.sh',brain));
-
-% mkdir(logfolder);
-% unix(sprintf('umask g+rxw %s',logfolder));
-% unix(sprintf('chmod g+rxw %s',logfolder));
-mkdir(out);
-unix(sprintf('umask g+rxw %s',out));
-unix(sprintf('chmod g+rxw %s',out));
-
-%%
-clear args
-pathfile = fullfile(experimentfolder,'listtiffiles');
-args.ext = 'tif';
-args.level = 3;
-if exist(pathfile, 'file') == 2
-    % load file directly
-else
-    args.fid = fopen(pathfile,'w');
-    recdir(inputfolder,args)
-    % make it write protected
-    unix(sprintf('chmod -w %s',pathfile));
+    logfolder = [];
+elseif nargin==2
+    logfolder = [];
 end
 
 %%
-% first get file list
-filename = pathfile;
-fid = fopen(filename);
-targetlist = textscan(fid,'%s','Delimiter','\n');targetlist=targetlist{1};
-fclose(fid);
-% myfun = @(x) strsplit(x,'/');
-mynames = cell(1,length(targetlist));
-for ii=1:length(targetlist)
-    % get the portion after inputfolder
-    mynames{ii} = targetlist{ii}(length(inputfolder)+1:end);
-end
-
-%%
-nametag = 'prob';
+logtag = 'ax-%s-log.%s.txt';
+nametag = 'prob'; % output tag, e.g. 0000-<nametag>.0.h5
 numcores = 4;
 memsize = numcores*7.5*1000;
 ilastikloc = '/groups/mousebrainmicro/mousebrainmicro/cluster/software/ilastik-1.1.9-Linux/run_ilastik.sh';
@@ -79,29 +44,52 @@ else
     outextformat = '"hdf5"';
 end
 
+
+inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',brain);
+outputtfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
+
+out = fullfile(outputtfolder,'/classifier_output/');
+myshfile = fullfile(outputtfolder,sprintf('cluster_ilastik_%s.sh',brain));
+
+mkdir(out);
+unix(sprintf('umask g+rxw %s',out));
+unix(sprintf('chmod g+rxw %s',out));
+
+if ~isempty(logfolder)
+    mkdir(logfolder);
+    unix(sprintf('umask g+rxw %s',logfolder));
+    unix(sprintf('chmod g+rxw %s',logfolder));
+end
+%%
+clear args
+pathfile = fullfile(outputtfolder,'listtiffiles');
+args.ext = 'tif';
+args.level = 3;
+if exist(pathfile, 'file') == 2
+    % load file directly
+else
+    args.fid = fopen(pathfile,'w');
+    recdir(inputfolder,args)
+    % make it write protected
+    unix(sprintf('chmod -w %s',pathfile));
+end
+
+% first get file list
+filename = pathfile; fid = fopen(filename); targetlist = textscan(fid,'%s','Delimiter','\n');targetlist=targetlist{1}; fclose(fid);
+% get the portion after inputfolder
+mynames = cell(1,length(targetlist));for ii=1:length(targetlist); mynames{ii} = targetlist{ii}(length(inputfolder)+1:end); end
+
 %%
 if 0
     missingfiles=ones(1,length(targetlist)); %#ok<UNRCH>
-elseif 0 %^ HECK
-    missingfiles=ones(1,length(targetlist)); %#ok<UNRCH>
-    % missingfiles(2:2:end) = 0;
-    % for every tif check if h5 exists
-    for ii=1:length(targetlist)
-        if ~missingfiles(ii)
-            continue
-        end
-        %     [aa,bb,cc] = fileparts(targetlist{ii}(length(inputfolder)+1:end))
-        
-        if exist(fullfile(out,strrep(strrep(mynames{ii},'ngc','prob'),'tif','h5')),'file')
-            missingfiles(ii) = 0;
-        end
+elseif 1
+    if isempty(logfolder)
+        % for every input tile, check the output tile log folder
+        missingfiles = checkmissingpertile(out,mynames,nametag,outext,logtag);
+    else
+        pathfile = fullfile(outputtfolder,'listtiffiles'); %#ok<UNRCH>
+        missingfiles = checkmissing(pathfile,logfolder);
     end
-elseif 0
-    
-    
-else
-    pathfile = fullfile(experimentfolder,'listtiffiles');
-    missingfiles = checkmissing(pathfile,logfolder);
 end
 sum(missingfiles)
 
@@ -123,7 +111,6 @@ for ii=1:1:length(targetlist)
     %generate random string
     randString = s( ceil(rand(1,sLength)*numRands) );
     jobname = sprintf('ilp_%05d-%s',ii,randString);
-    logfile=fullfile(logfolder,sprintf('ilp_%05d-%s.txt',ii,randString));
     infiles=targetlist{ii};
     
     [subpath,name,~]=fileparts(targetlist{ii}(length(inputfolder)+1:end));
@@ -134,11 +121,13 @@ for ii=1:1:length(targetlist)
         unix(sprintf('chmod g+rwx %s',fullfile(out,subpath)));
     end
     outputformat=fullfile(out,subpath,sprintf('%s-%s.%s.%s',subname{1},nametag,subname{3},outext));
+    logfile = fullfile(out,subpath,'.log',sprintf(logtag,subname{1},subname{3}));
+    if ~isempty(logfolder)
+        logfile=fullfile(logfolder,sprintf('ilp_%05d-%s.txt',ii,randString));
+    end
+    
     argsout = sprintf('''%s --headless  --cutout_subregion="[(None,None,None,0),(None,None,None,1)]" --logfile=%s --project=%s --output_format=%s --output_filename_format=%s %s''',...
         ilastikloc,logfile,ilpfile,outextformat,outputformat,infiles);
-    % make sure name doesnot have any '.'
-    name(name=='.')=[];
-%     mysub = sprintf('LAZYFLOW_THREADS=%d LAZYFLOW_TOTAL_RAM_MB=%d qsub -pe batch %d -l d_rt=1400 -N t-%d-%s -j y -o /dev/null -b y -cwd -V %s\n',numcores,memsize,numcores,ii,jobname,argsout);
     mysub = sprintf('LAZYFLOW_THREADS=%d LAZYFLOW_TOTAL_RAM_MB=%d bsub -n%d -We 25 -J t-%d-%s -o /dev/null %s\n',numcores,memsize,numcores,ii,jobname,argsout);
     fwrite(fid,mysub);
 end
@@ -147,6 +136,25 @@ unix(sprintf('chmod +x %s',myshfile));
 
 
 end
+
+function missingfiles = checkmissingpertile(out,mynames,nametag,outext,logtag)
+%%
+missingfiles=ones(1,length(mynames));
+parfor idx = 1:length(mynames)
+    outputfile = fullfile(out,strrep(strrep(mynames{idx},'ngc',nametag),'tif',outext));
+    [mypath,myfile,myext] = fileparts(outputfile);
+    mychannel = myfile(end);
+    logfile = fullfile(mypath,'.log',sprintf(logtag,myfile(1:5),mychannel));
+    if exist(outputfile,'file')
+        % check if log file has completed line
+        if exist(logfile,'file')
+            [q,w] = system(['grep "Completed Batch Processing" ',logfile]);
+            missingfiles(idx) = q;
+        end
+    end
+end
+end
+
 function missingfiles = checkmissing(pathfile,logfolder)
 %%
 filename = pathfile;
