@@ -16,6 +16,7 @@ function deployIlastikonbrain(brain,tag,logfolder)
 % $Author: base $	$Date: 2016/02/09 09:11:11 $	$Revision: 0.1 $
 % Copyright: HHMI 2016
 addpath(genpath('./common'))
+addpath(genpath('./functions'))
 %%
 % logfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/LOG/%s%s/',brain,tag);
 if nargin==0
@@ -28,6 +29,8 @@ elseif nargin==1
 elseif nargin==2
     logfolder = [];
 end
+inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',brain);
+outputtfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
 
 %%
 logtag = 'ax-%s-log.%s.txt';
@@ -44,9 +47,6 @@ else
     outextformat = '"hdf5"';
 end
 
-
-inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',brain);
-outputtfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
 
 out = fullfile(outputtfolder,'/classifier_output/');
 myshfile = fullfile(outputtfolder,sprintf('cluster_ilastik_%s.sh',brain));
@@ -79,7 +79,10 @@ filename = pathfile; fid = fopen(filename); targetlist = textscan(fid,'%s','Deli
 % get the portion after inputfolder
 mynames = cell(1,length(targetlist));for ii=1:length(targetlist); mynames{ii} = targetlist{ii}(length(inputfolder)+1:end); end
 
-%%
+%% curation
+curationH5(brain)
+
+%% missing files
 if 0
     missingfiles=ones(1,length(targetlist)); %#ok<UNRCH>
 elseif 1
