@@ -15,7 +15,7 @@ deployIlastikonbrain(brain,tag,logfolder)
 ### USAGE ### 
 **deployIlastikonbrain(brain,tag,logfolder)** function will replicate the input structure of **inputfolder** into **outputfolder** where, 
 
-inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',brain); 
+inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',brain);  
 outputtfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
 
 unless specified, log files are created in <outputfolder>/.log folder witn logtag = 'ax-%s-log.%s.txt'
