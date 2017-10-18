@@ -18,29 +18,26 @@ function deployIlastikonbrain(brain,tag)
 addpath(genpath('./common'))
 %%
 if nargin==0
-    brain = '2017-08-28';
-    tag = ''
+    brain = '2017-09-25';
+    tag = '';
+elseif nargin==1
+    tag = '';
 end
 
-if 0
-    % old
-    inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/from_tier2/data/%s/Tiling',brain);
-    experimentfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
-%     experimentfolder = sprintf('/nrs/mouselight/cluster/%s%s/',brain,tag);
-else
-    % new    
-    inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',brain);
-    experimentfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
-end
-logfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/LOG/%s%s/',brain,tag);
+inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',brain);
+experimentfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
+% logfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/LOG/%s%s/',brain,tag);
+
 out = fullfile(experimentfolder,'/classifier_output/');
 myshfile = fullfile(experimentfolder,sprintf('cluster_ilastik_%s.sh',brain));
 
-mkdir(logfolder)
-unix(sprintf('umask g+rxw %s',logfolder))
-unix(sprintf('chmod g+rxw %s',logfolder))
-mkdir(out)
-unix(sprintf('umask g+rxw %s',out))
+% mkdir(logfolder);
+% unix(sprintf('umask g+rxw %s',logfolder));
+% unix(sprintf('chmod g+rxw %s',logfolder));
+mkdir(out);
+unix(sprintf('umask g+rxw %s',out));
+unix(sprintf('chmod g+rxw %s',out));
+
 %%
 clear args
 pathfile = fullfile(experimentfolder,'listtiffiles');
@@ -61,51 +58,53 @@ filename = pathfile;
 fid = fopen(filename);
 targetlist = textscan(fid,'%s','Delimiter','\n');targetlist=targetlist{1};
 fclose(fid);
-myfun = @(x) strsplit(x,'/');
-clear mynames
+% myfun = @(x) strsplit(x,'/');
+mynames = cell(1,length(targetlist));
 for ii=1:length(targetlist)
-    %     K = myfun(targetlist{ii});
     % get the portion after inputfolder
     mynames{ii} = targetlist{ii}(length(inputfolder)+1:end);
 end
+
 %%
-nametag = 'prob'
+nametag = 'prob';
 numcores = 4;
 memsize = numcores*7.5*1000;
-ilastikloc = '/groups/mousebrainmicro/mousebrainmicro/cluster/software/ilastik-1.1.9-Linux/run_ilastik.sh'
+ilastikloc = '/groups/mousebrainmicro/mousebrainmicro/cluster/software/ilastik-1.1.9-Linux/run_ilastik.sh';
 ilpfile = '/groups/mousebrainmicro/mousebrainmicro/erhan_dm11/AxonClassifier/axon_uint16.ilp';
 if 0
-    outext = 'tif'
-    outextformat = '"multipage tiff"'
+    outext = 'tif'; %#ok<UNRCH>
+    outextformat = '"multipage tiff"';
 else
-    outext = 'h5'
-    outextformat = '"hdf5"'
+    outext = 'h5';
+    outextformat = '"hdf5"';
 end
+
 %%
 if 0
-    missingfiles=ones(1,length(targetlist));
+    missingfiles=ones(1,length(targetlist)); %#ok<UNRCH>
+elseif 0 %^ HECK
+    missingfiles=ones(1,length(targetlist)); %#ok<UNRCH>
+    % missingfiles(2:2:end) = 0;
+    % for every tif check if h5 exists
+    for ii=1:length(targetlist)
+        if ~missingfiles(ii)
+            continue
+        end
+        %     [aa,bb,cc] = fileparts(targetlist{ii}(length(inputfolder)+1:end))
+        
+        if exist(fullfile(out,strrep(strrep(mynames{ii},'ngc','prob'),'tif','h5')),'file')
+            missingfiles(ii) = 0;
+        end
+    end
+elseif 0
+    
+    
 else
     pathfile = fullfile(experimentfolder,'listtiffiles');
     missingfiles = checkmissing(pathfile,logfolder);
 end
 sum(missingfiles)
-%%
-%^ HECK
-if 0
-missingfiles=ones(1,length(targetlist));
-% missingfiles(2:2:end) = 0;
-% for every tif check if h5 exists
-for ii=1:length(targetlist)
-    if ~missingfiles(ii)
-        continue
-    end
-%     [aa,bb,cc] = fileparts(targetlist{ii}(length(inputfolder)+1:end))
-    
-    if exist(fullfile(out,strrep(strrep(mynames{ii},'ngc','prob'),'tif','h5')),'file')
-        missingfiles(ii) = 0;
-    end
-end
-end
+
 %%
 s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 %find number of random characters to choose from
@@ -127,7 +126,7 @@ for ii=1:1:length(targetlist)
     logfile=fullfile(logfolder,sprintf('ilp_%05d-%s.txt',ii,randString));
     infiles=targetlist{ii};
     
-    [subpath,name,ext]=fileparts(targetlist{ii}(length(inputfolder)+1:end));
+    [subpath,name,~]=fileparts(targetlist{ii}(length(inputfolder)+1:end));
     % TODO: rename using prob 
     subname = strsplit(name,{'-','.'});
     if ~exist(fullfile(out,subpath), 'dir')

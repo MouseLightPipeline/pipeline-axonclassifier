@@ -1,6 +1,6 @@
 # README #
 
-axonal enhancement classifier. It aims to normalize axon appereance from various scopoes and labeling strategies by utilizing shape and appereance features. 
+axonal enhancement classifier. It aims to normalize axon appereance from various scopes and labeling strategies by utilizing shape and appereance features. 
 
 ### What is this repository for? ###
 

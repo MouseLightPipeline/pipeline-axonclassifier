@@ -1,14 +1,8 @@
-sample = '2017-08-10'
-h5folder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s/classifier_output',sample)
-tiffolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',sample)
-logfolder = '/groups/mousebrainmicro/mousebrainmicro/LOG/pipeline/'
-axlogfiles = dir(fullfile(logfolder,['ax-2017-08*.txt']));
-%%
-clear args
-tiffilelist = fullfile(tiffolder,'listtiffiles');
-fid = fopen(tiffilelist);
-inputlist = textscan(fid,'%s','Delimiter','\n');inputlist=inputlist{1};
-fclose(fid);
+sample = '2017-09-25'
+% logfolder = '/groups/mousebrainmicro/mousebrainmicro/LOG/pipeline/'
+% axlogfiles = dir(fullfile(logfolder,['ax-2017-08*.txt']));
+[inputtiflist,inputh5list] = listfolders(sample);
+
 %%
 nametag = 'prob'
 numcores = 4;
