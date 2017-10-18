@@ -2,28 +2,18 @@
 
 axonal enhancement classifier. It aims to normalize axon appereance from various scopes and labeling strategies by utilizing shape and appereance features. 
 
-### What is this repository for? ###
+### TO RUN ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+* run deployIlastikonbrain.m
 
-### How do I get set up? ###
+### INPUTS ###
+deployIlastikonbrain(brain,tag,logfolder)
+brain: sample name
+tag(OPTIONAL): experiment name, useful to run multiple experiments on the same brain, default = ''
+logfolder(OPTIONAL): output log folder. Needed to search for succesfull completion, default : <output_tile_folder>/.log
 
-* Summary of set up: matlab scripts that will generate ilastik scripts that needs to be submitted over cluster
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+### USAGE ### 
+deployIlastikonbrain(brain,tag,logfolder) function will replicate the input structure of inputfolder = sprintf('/groups/mousebrainmicro/mousebrainmicro/data/%s/Tiling',brain); into 
+outputtfolder = sprintf('/nrs/mouselight/cluster/classifierOutputs/%s%s/',brain,tag);
 
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+unless specified, log files are created in <outputfolder>/.log folder witn logtag = 'ax-%s-log.%s.txt'
